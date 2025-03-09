@@ -1,4 +1,4 @@
-use crate::config::Item;
+use crate::config::{Assistant, Config};
 use async_openai::{
     config::OpenAIConfig,
     error::OpenAIError,
@@ -9,40 +9,70 @@ use async_openai::{
     Client,
 };
 
-pub async fn chat_openai(
-    openai_api_key: Option<String>,
-    message: String,
-    config_item: Item,
-) -> Result<String, OpenAIError> {
-    let client: Client<OpenAIConfig> =
-        Client::with_config(openai_api_key.map_or(OpenAIConfig::new(), |key| {
-            OpenAIConfig::new().with_api_key(key)
-        }));
+#[derive(Debug, Clone)]
+pub struct OpenAI {
+    client: Client<OpenAIConfig>,
+    current_assistant: String,
+    assistants: Vec<Assistant>,
+}
 
-    let request = CreateChatCompletionRequestArgs::default()
-        .max_tokens(config_item.max_tokens)
-        .model(config_item.model)
-        .messages([
-            ChatCompletionRequestSystemMessageArgs::default()
-                .content(config_item.system_message)
-                .build()?
-                .into(),
-            ChatCompletionRequestUserMessageArgs::default()
-                .content(message)
-                .build()?
-                .into(),
-        ])
-        .build()?;
+impl OpenAI {
+    pub fn new(config: &Config) -> Self {
+        let client: Client<OpenAIConfig> = Client::with_config(
+            config
+                .openai_api_key
+                .clone()
+                .map_or(OpenAIConfig::new(), |key| {
+                    OpenAIConfig::new().with_api_key(key)
+                }),
+        );
+        OpenAI {
+            client,
+            current_assistant: config
+                .assistants
+                .first()
+                .map_or(String::new(), |assistant| assistant.name.to_string()),
+            assistants: config.assistants.clone(),
+        }
+    }
 
-    log::debug!("sending request: {:?}", &request);
+    pub fn set_assistant(mut self, assistant: &str) -> Self {
+        self.current_assistant = assistant.to_string();
+        self
+    }
 
-    let response = client.chat().create(request).await?;
+    pub async fn chat(&self, message: &str) -> Result<String, OpenAIError> {
+        let assistant = self
+            .assistants
+            .iter()
+            .find(|assistant| assistant.name == self.current_assistant)
+            .cloned()
+            .unwrap_or_default();
+        let request = CreateChatCompletionRequestArgs::default()
+            .max_tokens(assistant.max_tokens)
+            .model(assistant.model)
+            .messages([
+                ChatCompletionRequestSystemMessageArgs::default()
+                    .content(assistant.system_message)
+                    .build()?
+                    .into(),
+                ChatCompletionRequestUserMessageArgs::default()
+                    .content(message)
+                    .build()?
+                    .into(),
+            ])
+            .build()?;
 
-    log::debug!("response received: {:?}", &response);
+        log::debug!("sending request: {:?}", &request);
 
-    Ok(response.choices[0]
-        .message
-        .content
-        .clone()
-        .unwrap_or("No response".to_string()))
+        let response = self.client.chat().create(request).await?;
+
+        log::debug!("response received: {:?}", &response);
+
+        Ok(response.choices[0]
+            .message
+            .content
+            .clone()
+            .unwrap_or("No response".to_string()))
+    }
 }

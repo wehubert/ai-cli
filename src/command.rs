@@ -1,47 +1,47 @@
-use crate::config::{Config, Item};
-use clap::{command, error::ErrorKind, Arg, Command, Error};
+use crate::config::Config;
+use clap::{command, error::ErrorKind, Arg, Error};
 
-pub fn parse_command(config: &Config) -> Result<(String, Item), Error> {
-    let subcommands: Vec<Command> = config
-        .items
-        .iter()
-        .map(|item| -> Command {
-            Command::new(&item.name).about(&item.help).arg(
-                Arg::new("message")
-                    .help("Message content")
-                    .num_args(0..)
-                    .required(true),
-            )
-        })
-        .collect();
+#[derive(Debug, Clone, Default)]
+pub struct Command {
+    pub name: String,
+    pub message: String,
+}
 
-    let mut args = command!()
-        .subcommand_required(true)
-        .subcommands(subcommands)
-        .get_matches();
+impl Command {
+    pub fn new(config: &Config) -> Result<Self, Error> {
+        let subcommands: Vec<clap::Command> = config
+            .assistants
+            .iter()
+            .map(|assitant| -> clap::Command {
+                clap::Command::new(&assitant.name)
+                    .about(&assitant.help)
+                    .arg(
+                        Arg::new("message")
+                            .help("Message content")
+                            .num_args(0..)
+                            .required(true),
+                    )
+            })
+            .collect();
 
-    log::debug!("called with params: {:?}", &args);
+        let mut args = command!()
+            .subcommand_required(true)
+            .subcommands(subcommands)
+            .get_matches();
 
-    let (subcmd_name, mut subcmd_args) = args
-        .remove_subcommand()
-        .ok_or(Error::new(ErrorKind::InvalidSubcommand))?;
+        let (subcmd_name, mut subcmd_args) = args
+            .remove_subcommand()
+            .ok_or(Error::new(ErrorKind::InvalidSubcommand))?;
 
-    let subcmd_config = config
-        .items
-        .iter()
-        .find(|item| item.name == subcmd_name)
-        .cloned()
-        .ok_or(Error::new(ErrorKind::InvalidSubcommand))?;
-
-    let message = format!(
-        "{} {}",
-        subcmd_config.prefix,
-        subcmd_args
+        let sumbcmd_message = subcmd_args
             .remove_many::<String>("message")
             .unwrap_or_default()
             .collect::<Vec<_>>()
-            .join(" ")
-    );
+            .join(" ");
 
-    Ok((message, subcmd_config))
+        Ok(Command {
+            name: subcmd_name,
+            message: sumbcmd_message,
+        })
+    }
 }

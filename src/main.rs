@@ -2,9 +2,9 @@ mod command;
 mod config;
 mod openai;
 
-use crate::command::parse_command;
-use crate::config::load_config;
-use crate::openai::chat_openai;
+use command::Command;
+use config::Config;
+use openai::OpenAI;
 
 fn get_log_level(debug_mode: bool) -> log::Level {
     if debug_mode {
@@ -16,13 +16,16 @@ fn get_log_level(debug_mode: bool) -> log::Level {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = load_config()?;
+    let config = Config::load()?;
     simple_logger::init_with_level(get_log_level(config.debug_mode))?;
 
-    log::debug!("Config read: {:?}", &config);
+    log::debug!("Config read: {:?}", config);
 
-    let (message, config_item) = parse_command(&config)?;
-    let response = chat_openai(config.openai_api_key, message, config_item).await?;
+    let command = Command::new(&config)?;
+    let response = OpenAI::new(&config)
+        .set_assistant(&command.name)
+        .chat(&command.message)
+        .await?;
     println!("{}", response);
 
     Ok(())
