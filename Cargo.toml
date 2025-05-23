@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-openai = "0.28.0"
-clap = { version = "4.5.31", features = ["cargo", "string"] }
-confy = { version="0.6.1", features =["toml_conf"] }
-log = "0.4.26"
+async-openai = "0.28.1"
+clap = { version = "4.5.38", features = ["cargo", "string"] }
+confy = { version="1.0.0", features =["toml_conf"] }
+log = "0.4.27"
 serde = "1.0.219"
 simple_logger = "5.0.0"
-tokio = { version = "1.44.0", features = ["rt","macros"] }
+tokio = { version = "1.45.0", features = ["rt","macros"] }
