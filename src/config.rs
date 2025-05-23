@@ -15,7 +15,7 @@ impl Default for Assistant {
         Assistant {
             name: "chat".to_string(),
             help: "Ask a generic question".to_string(),
-            model: "gpt-3.5-turbo".to_string(),
+            model: "gpt-4.1-nano".to_string(),
             max_tokens: 100,
             system_message: "You are a helpful assistant".to_string(),
             prefix: String::default(),
@@ -50,10 +50,10 @@ impl Default for Config {
                 Assistant {
                     name: "howto".to_string(),
                     help: "Get bash command that solves the problem".to_string(),
-                    model: "gpt-3.5-turbo".to_string(),
+                    model: "gpt-4.1-nano".to_string(),
                     max_tokens: 100,
-                    system_message: "Answer with only one command for linux bash shell".to_string(),
-                    prefix: "Howto".to_string(),
+                    system_message: "Answer only with linux bash command no markdown".to_string(),
+                    prefix: "How to".to_string(),
                 },
             ],
         }
