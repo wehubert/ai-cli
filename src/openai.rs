@@ -2,8 +2,8 @@ use crate::config::{Assistant, Config};
 use async_openai::{
     config::OpenAIConfig,
     error::OpenAIError,
-    types::{
-        ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
+    types::chat::{
+        ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage,
         CreateChatCompletionRequestArgs,
     },
     Client,
@@ -52,13 +52,8 @@ impl OpenAI {
             .max_tokens(assistant.max_tokens)
             .model(assistant.model)
             .messages([
-                ChatCompletionRequestSystemMessageArgs::default()
-                    .content(assistant.system_message)
-                    .build()?
-                    .into(),
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(message)
-                    .build()?
+                ChatCompletionRequestSystemMessage::from(assistant.system_message).into(),
+                ChatCompletionRequestUserMessage::from(assistant.prefix.clone() + " " + message)
                     .into(),
             ])
             .build()?;
